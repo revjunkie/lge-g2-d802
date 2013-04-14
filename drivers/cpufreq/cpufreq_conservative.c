@@ -31,6 +31,7 @@
 
 #define DEF_FREQUENCY_UP_THRESHOLD		(80)
 #define DEF_FREQUENCY_DOWN_THRESHOLD		(20)
+#define DEF_FREQUENCY_STEP	(5)
 
 /*
  * The polling frequency of this governor depends on the capability of
@@ -55,7 +56,7 @@ static unsigned int min_sampling_rate;
 #define DEF_HIGH_GRID_STEP 				(20)
 #define DEF_MIDDLE_GRID_LOAD			(65)
 #define DEF_HIGH_GRID_LOAD				(89)
-#define DEF_OPTIMAL_FREQ					(2265600)
+#define DEF_OPTIMAL_FREQ					(1574400)
 
 static void do_dbs_timer(struct work_struct *work);
 
@@ -105,7 +106,7 @@ static struct dbs_tuners {
 	.down_threshold = DEF_FREQUENCY_DOWN_THRESHOLD,
 	.sampling_down_factor = DEF_SAMPLING_DOWN_FACTOR,
 	.ignore_nice = 0,
-	.freq_step = 5,
+	.freq_step = DEF_FREQUENCY_STEP,
 	.middle_grid_step = DEF_MIDDLE_GRID_STEP,
 	.high_grid_step = DEF_HIGH_GRID_STEP,
 	.middle_grid_load = DEF_MIDDLE_GRID_LOAD,
@@ -401,11 +402,21 @@ static struct attribute_group dbs_attr_group = {
 
 /************************** sysfs end ************************/
 
+static inline unsigned int get_freq_target(struct cpufreq_policy *policy)
+{
+		 unsigned int freq_target = (dbs_tuners_ins.freq_step * policy->max) / 100;
+
+		 /* max freq cannot be less than 100. But who knows... */
+		 if (unlikely(freq_target == 0))
+		 freq_target = DEF_FREQUENCY_STEP;
+
+		 return freq_target;
+}
+
 static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 {
 	unsigned int load = 0;
 	unsigned int max_load = 0;
-	unsigned int freq_target;
 
 	struct cpufreq_policy *policy;
 	unsigned int j;
@@ -497,13 +508,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		if (this_dbs_info->requested_freq == policy->max)
 			return;
 
-		freq_target = (dbs_tuners_ins.freq_step * policy->max) / 100;
-
-		/* max freq cannot be less than 100. But who knows.... */
-		if (unlikely(freq_target == 0))
-			freq_target = 5;
-
-		this_dbs_info->requested_freq += freq_target;
+		this_dbs_info->requested_freq += get_freq_target(policy);
 		if (this_dbs_info->requested_freq > policy->max)
 			this_dbs_info->requested_freq = policy->max;
 
@@ -517,10 +522,9 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
  			return;
  	this_dbs_info->down_skip = 0;
 
-	if (max_load < dbs_tuners_ins.down_threshold - 10) {
-		freq_target = (dbs_tuners_ins.freq_step * policy->max) / 100;
+	 if (max_load < dbs_tuners_ins.down_threshold) {
+			this_dbs_info->requested_freq -= get_freq_target(policy);
 
-		this_dbs_info->requested_freq -= freq_target;
 		if (this_dbs_info->requested_freq < policy->min)
 			this_dbs_info->requested_freq = policy->min;
 
