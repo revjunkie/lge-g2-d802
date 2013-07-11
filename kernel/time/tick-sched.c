@@ -603,7 +603,6 @@ void tick_nohz_idle_exit(void)
 		account_idle_ticks(ticks);
 #endif
 
-	calc_load_exit_idle();
 	touch_softlockup_watchdog();
 	/*
 	 * Cancel the scheduled timer and restore the tick
