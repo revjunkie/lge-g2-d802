@@ -614,6 +614,8 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 			max_load = cur_load;
 	}
 	
+	cpufreq_notify_utilization(policy, max_load);
+	
 	if (touch && max_load < dbs_tuners_ins.touch_load &&
 		max_load > dbs_tuners_ins.touch_load_threshold)
 		max_load = dbs_tuners_ins.touch_load;
