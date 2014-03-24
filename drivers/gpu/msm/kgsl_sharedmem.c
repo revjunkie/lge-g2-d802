@@ -390,11 +390,6 @@ static int kgsl_page_alloc_vmfault(struct kgsl_memdesc *memdesc,
 	return VM_FAULT_SIGBUS;
 }
 
-static int kgsl_page_alloc_vmflags(struct kgsl_memdesc *memdesc)
-{
-	return VM_RESERVED | VM_DONTEXPAND | VM_DONTCOPY;
-}
-
 /*
  * kgsl_page_alloc_unmap_kernel() - Unmap the memory in memdesc
  *
@@ -435,11 +430,6 @@ static void kgsl_page_alloc_free(struct kgsl_memdesc *memdesc)
 	if (memdesc->sg)
 		for_each_sg(memdesc->sg, sg, sglen, i)
 			__free_pages(sg_page(sg), get_order(sg->length));
-}
-
-static int kgsl_contiguous_vmflags(struct kgsl_memdesc *memdesc)
-{
-	return VM_RESERVED | VM_IO | VM_PFNMAP | VM_DONTEXPAND | VM_DONTCOPY;
 }
 
 /*
@@ -576,7 +566,8 @@ static void kgsl_coherent_free(struct kgsl_memdesc *memdesc)
 /* Global - also used by kgsl_drm.c */
 struct kgsl_memdesc_ops kgsl_page_alloc_ops = {
 	.free = kgsl_page_alloc_free,
-	.vmflags = kgsl_page_alloc_vmflags,
+	.vmflags = VM_IO | VM_DONTEXPAND,
+	//.vmflags = VM_RESERVED | VM_DONTEXPAND,
 	.vmfault = kgsl_page_alloc_vmfault,
 	.map_kernel = kgsl_page_alloc_map_kernel,
 	.unmap_kernel = kgsl_page_alloc_unmap_kernel,
@@ -585,7 +576,8 @@ EXPORT_SYMBOL(kgsl_page_alloc_ops);
 
 static struct kgsl_memdesc_ops kgsl_ebimem_ops = {
 	.free = kgsl_ebimem_free,
-	.vmflags = kgsl_contiguous_vmflags,
+	.vmflags = VM_IO | VM_PFNMAP | VM_DONTEXPAND,
+	//.vmflags = VM_RESERVED | VM_PFNMAP | VM_DONTEXPAND,
 	.vmfault = kgsl_contiguous_vmfault,
 	.map_kernel = kgsl_ebimem_map_kernel,
 	.unmap_kernel = kgsl_ebimem_unmap_kernel,
