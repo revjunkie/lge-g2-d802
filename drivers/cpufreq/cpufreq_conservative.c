@@ -51,6 +51,11 @@ static unsigned int min_sampling_rate;
 #define DEF_SAMPLING_DOWN_FACTOR		(1)
 #define MAX_SAMPLING_DOWN_FACTOR		(10)
 #define TRANSITION_LATENCY_LIMIT		(10 * 1000 * 1000)
+#define DEF_MIDDLE_GRID_STEP 			(14)
+#define DEF_HIGH_GRID_STEP 				(20)
+#define DEF_MIDDLE_GRID_LOAD			(65)
+#define DEF_HIGH_GRID_LOAD				(89)
+#define DEF_OPTIMAL_FREQ					(2265600)
 
 static void do_dbs_timer(struct work_struct *work);
 
@@ -89,12 +94,24 @@ static struct dbs_tuners {
 	unsigned int down_threshold;
 	unsigned int ignore_nice;
 	unsigned int freq_step;
+	unsigned int optimal_max_freq;
+	unsigned int middle_grid_step;
+	unsigned int high_grid_step;
+	unsigned int middle_grid_load;
+	unsigned int high_grid_load;
+	unsigned int debug_mask;
 } dbs_tuners_ins = {
 	.up_threshold = DEF_FREQUENCY_UP_THRESHOLD,
 	.down_threshold = DEF_FREQUENCY_DOWN_THRESHOLD,
 	.sampling_down_factor = DEF_SAMPLING_DOWN_FACTOR,
 	.ignore_nice = 0,
 	.freq_step = 5,
+	.middle_grid_step = DEF_MIDDLE_GRID_STEP,
+	.high_grid_step = DEF_HIGH_GRID_STEP,
+	.middle_grid_load = DEF_MIDDLE_GRID_LOAD,
+	.high_grid_load = DEF_HIGH_GRID_LOAD,
+	.optimal_max_freq = DEF_OPTIMAL_FREQ,
+	.debug_mask=0,
 };
 
 /* keep track of frequency transitions */
@@ -151,6 +168,12 @@ show_one(up_threshold, up_threshold);
 show_one(down_threshold, down_threshold);
 show_one(ignore_nice_load, ignore_nice);
 show_one(freq_step, freq_step);
+show_one(middle_grid_step, middle_grid_step);
+show_one(high_grid_step, high_grid_step);
+show_one(middle_grid_load, middle_grid_load);
+show_one(high_grid_load, high_grid_load);
+show_one(optimal_max_freq, optimal_max_freq);
+show_one(debug_mask,debug_mask);
 
 static ssize_t store_sampling_down_factor(struct kobject *a,
 					  struct attribute *b,
@@ -263,12 +286,96 @@ static ssize_t store_freq_step(struct kobject *a, struct attribute *b,
 	return count;
 }
 
+static ssize_t store_middle_grid_step(struct kobject *a, struct attribute *b,
+				const char *buf, size_t count)
+{
+	 unsigned int input;
+	 int ret;
+
+	 ret = sscanf(buf, "%u", &input);
+	 if (ret != 1)
+	 	return -EINVAL;
+	 dbs_tuners_ins.middle_grid_step = input;
+	 return count;
+}
+
+static ssize_t store_high_grid_step(struct kobject *a, struct attribute *b,
+ 				const char *buf, size_t count)
+{
+	 unsigned int input;
+	 int ret;
+
+	 ret = sscanf(buf, "%u", &input);
+	 if (ret != 1)
+	 	return -EINVAL;
+	 dbs_tuners_ins.high_grid_step = input;
+	 return count;
+}
+
+static ssize_t store_optimal_max_freq(struct kobject *a, struct attribute *b,
+				 const char *buf, size_t count)
+{
+	 unsigned int input;
+	 int ret;
+
+	 ret = sscanf(buf, "%u", &input);
+	 if (ret != 1)
+	 	return -EINVAL;
+	 dbs_tuners_ins.optimal_max_freq = input;
+	 return count;
+}
+
+static ssize_t store_middle_grid_load(struct kobject *a, struct attribute *b, 
+				const char *buf, size_t count)
+{
+	 unsigned int input;
+	 int ret;
+	 ret = sscanf(buf, "%u", &input);
+
+	 if (ret != 1)
+	 	return -EINVAL;
+	 dbs_tuners_ins.middle_grid_load = input;
+	 return count;
+}
+
+static ssize_t store_high_grid_load(struct kobject *a, struct attribute *b, 
+				const char *buf, size_t count)
+{
+	 unsigned int input;
+	 int ret;
+	 ret = sscanf(buf, "%u", &input);
+
+	 if (ret != 1)
+		 return -EINVAL;
+	 dbs_tuners_ins.high_grid_load = input;
+	 return count;
+}
+
+static ssize_t store_debug_mask(struct kobject *a, struct attribute *b, 
+				const char *buf, size_t count)
+{
+	 unsigned int input;
+	 int ret;
+	 ret = sscanf(buf, "%u", &input);
+
+	 if (ret != 1)
+		 return -EINVAL;
+	 dbs_tuners_ins.debug_mask= input;
+	 return count;
+}
+
 define_one_global_rw(sampling_rate);
 define_one_global_rw(sampling_down_factor);
 define_one_global_rw(up_threshold);
 define_one_global_rw(down_threshold);
 define_one_global_rw(ignore_nice_load);
 define_one_global_rw(freq_step);
+define_one_global_rw(optimal_max_freq);
+define_one_global_rw(middle_grid_step);
+define_one_global_rw(high_grid_step);
+define_one_global_rw(middle_grid_load);
+define_one_global_rw(high_grid_load);
+define_one_global_rw(debug_mask);
 
 static struct attribute *dbs_attributes[] = {
 	&sampling_rate_min.attr,
@@ -278,6 +385,12 @@ static struct attribute *dbs_attributes[] = {
 	&down_threshold.attr,
 	&ignore_nice_load.attr,
 	&freq_step.attr,
+	&optimal_max_freq.attr,
+	&middle_grid_step.attr,
+	&high_grid_step.attr,
+	&middle_grid_load.attr,
+	&high_grid_load.attr,
+	&debug_mask.attr,
 	NULL
 };
 
@@ -363,8 +476,23 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 	/* Check for frequency increase */
 	if (max_load > dbs_tuners_ins.up_threshold) {
-		this_dbs_info->down_skip = 0;
+		int freq_target, freq_div;
+		 freq_target=0; freq_div=0;
 
+		 if(max_load > dbs_tuners_ins.high_grid_load){
+		 freq_div = (policy->max * dbs_tuners_ins.high_grid_step) / 100;
+		 freq_target = min(policy->max, policy->cur + freq_div);
+		 } else if(max_load > dbs_tuners_ins.middle_grid_load){
+		 freq_div = (policy->max * dbs_tuners_ins.middle_grid_step) / 100;
+		 freq_target = min(policy->max, policy->cur + freq_div);
+		 } else {
+		 if(policy->max < dbs_tuners_ins.optimal_max_freq)
+		 freq_target = policy->max;
+		 else
+		 freq_target = dbs_tuners_ins.optimal_max_freq;
+ 
+		this_dbs_info->down_skip = 0;
+	}
 		/* if we are already at full speed then break out early */
 		if (this_dbs_info->requested_freq == policy->max)
 			return;
