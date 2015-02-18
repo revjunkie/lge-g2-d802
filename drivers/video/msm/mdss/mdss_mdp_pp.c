@@ -375,6 +375,7 @@ struct mdss_pp_res_type {
 	struct pp_hist_col_info dspp_hist[MDSS_MDP_MAX_DSPP];
 };
 
+#ifndef CONFIG_FB_MSM_MDSS_KCAL_CTRL
 #ifdef CONFIG_MACH_LGE
 uint32_t igc_Table_RGB[256] = {
 		4080	,		4064	,		4048	,		4032	,		4016	,		4000	,		3984	,		3968	,		3952	,		3936	,		3920	,		3904	,
@@ -400,9 +401,10 @@ uint32_t igc_Table_RGB[256] = {
 		240	,		224	,		208	,		192	,		176	,		160	,		144	,		128	,		112	,		96	,		80	,		64	,
 		48	,		32	,		16	,		0
 };
+
 int igc_c0_c1[256] = {0,};
 int igc_c2[256] = {0,};
-
+#endif
 #endif
 static DEFINE_MUTEX(mdss_pp_mutex);
 static struct mdss_pp_res_type *mdss_pp_res;
@@ -2720,6 +2722,7 @@ static void pp_read_igc_lut_cached(struct mdp_igc_lut_data *cfg)
 			mdss_pp_res->igc_disp_cfg[disp_num].c2_data[i];
 	}
 }
+#ifndef CONFIG_FB_MSM_MDSS_KCAL_CTRL
 #ifdef CONFIG_MACH_LGE
 int mdss_dsi_panel_invert(u32 enable)
 {
@@ -2764,7 +2767,7 @@ int mdss_dsi_panel_invert(u32 enable)
 	return 0;
 }
 #endif
-
+#endif
 static void pp_read_igc_lut(struct mdp_igc_lut_data *cfg,
 				char __iomem *addr, u32 blk_idx)
 {

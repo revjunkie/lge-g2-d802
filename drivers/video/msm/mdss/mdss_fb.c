@@ -2800,9 +2800,10 @@ static int mdss_fb_ioctl(struct fb_info *info, unsigned int cmd,
 	struct mdp_buf_sync buf_sync;
 	struct msm_sync_pt_data *sync_pt_data = NULL;
 	unsigned int dsi_mode = 0;
-
+#ifndef CONFIG_FB_MSM_MDSS_KCAL_CTRL
 #ifdef CONFIG_MACH_LGE
 	u32 dsi_panel_invert = 0;
+#endif
 #endif
 #if defined(CONFIG_LGE_BROADCAST_TDMB) || defined(CONFIG_LGE_BROADCAST_JFULLSEG)
 	int dmb_flag = 0;
@@ -2872,6 +2873,7 @@ static int mdss_fb_ioctl(struct fb_info *info, unsigned int cmd,
 	case MSMFB_DISPLAY_COMMIT:
 		ret = mdss_fb_display_commit(info, argp);
 		break;
+#ifndef CONFIG_FB_MSM_MDSS_KCAL_CTRL
 #ifdef CONFIG_MACH_LGE
 	case MSMFB_INVERT_PANEL:
 		ret = copy_from_user(&dsi_panel_invert, argp, sizeof(int));
@@ -2879,6 +2881,7 @@ static int mdss_fb_ioctl(struct fb_info *info, unsigned int cmd,
 			return ret;
 		ret = mdss_dsi_panel_invert(dsi_panel_invert);
 		break;
+#endif
 #endif
 #if defined(CONFIG_LGE_BROADCAST_TDMB) || defined(CONFIG_LGE_BROADCAST_JFULLSEG)
 	case MSMFB_DMB_SET_FLAG:

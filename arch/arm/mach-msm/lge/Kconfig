@@ -72,6 +72,7 @@ config LGE_KSWITCH
 
 config LCD_KCAL
 	depends on MACH_LGE
+	depends on !FB_MSM_MDSS_KCAL_CTRL
 	bool "Enable sysfs for LCD KCAL"
 	default n
 
