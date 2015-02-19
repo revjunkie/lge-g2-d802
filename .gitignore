@@ -32,6 +32,7 @@ modules.builtin
 *.lzo
 *.patch
 *.gcno
+*.dtb
 
 #
 # Top-level generic files
@@ -44,6 +45,8 @@ modules.builtin
 /System.map
 /Module.markers
 /Module.symvers
+/scripts
+arch/arm/boot
 
 #
 # Debian directory (make deb-pkg)
@@ -65,6 +68,16 @@ include/generated
 arch/*/include/generated
 /comp.sh
 arch/arm/mach-msm/smd_rpc_sym.c
+arch/arm/kernel/vmlinux.lds
+drivers/tty/vt/consolemap_deftbl.c
+drivers/tty/vt/defkeymap.c
+kernel/timeconst.h
+lib/crc32table.h
+lib/gen_crc32table
+security/selinux/av_permissions.h
+security/selinux/flask.h
+usr/gen_init_cpio
+usr/initramfs_data.cpio
 
 
 # stgit generated dirs
