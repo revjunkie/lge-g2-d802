@@ -2539,6 +2539,12 @@ config MSM_RUN_QUEUE_STATS
          in user mode, called MPDecision will be using this data to decide
          on when to switch off/on the other cores.
 
+config REVSHIFT_HOTPLUG
+	tristate "Use a custom hotplug driver based on cpu load"
+	default y
+	help
+	 Enable custom hotplug driver
+
 config MSM_STANDALONE_POWER_COLLAPSE
        bool "Enable standalone power collapse"
        default n
