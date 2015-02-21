@@ -42,12 +42,12 @@ unsigned int down_diff;
 unsigned int shift_diff;
 unsigned int shift_diff_all;
 } rev = {
-	.shift_all = 185,
+	.shift_all = 175,
 	.shift_cpu1 = 30,
-	.shift_threshold = 4,
+	.shift_threshold = 3,
 	.down_shift = 20,
-	.downshift_threshold = 10,
-	.sample_time = 100,
+	.downshift_threshold = 5,
+	.sample_time = 200,
 	.touchplug_duration = 5000,
 	.min_cpu = 1,
 	.max_cpu = 4,	
@@ -133,7 +133,7 @@ static inline void unplug_one(void)
 {	
 	int cpu = get_idle_cpu();
 	
-	if (cpu < nr_cpu_ids) 
+	if (cpu != 0) 
 		cpu_down(cpu);
 		dprintk("offline cpu %d\n", cpu);
 		
