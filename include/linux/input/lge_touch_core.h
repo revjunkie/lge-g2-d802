@@ -706,8 +706,12 @@ enum{
 #define TOUCH_ERROR_PRINT   (1)
 #define TOUCH_INFO_PRINT	(1)
 
+static unsigned int debug = 0;
+module_param(debug, uint, 0644);
+
 #if defined(TOUCH_INFO_PRINT)
 #define TOUCH_INFO_MSG(fmt, args...) \
+	if (debug)			\
 		do { \
 			printk(KERN_INFO "[Touch] " fmt, ##args); \
 		} while (0)
