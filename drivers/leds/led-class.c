@@ -27,6 +27,15 @@
 
 #define LED_BUFF_SIZE 50
 
+static unsigned int debug = 0;
+module_param(debug, uint, 0644);
+
+#define printk(msg...)		\
+do { 				\
+	if (debug)		\
+		printk(msg);	\
+} while (0)
+
 static struct class *leds_class;
 #ifdef CONFIG_LEDS_PM8941_EMOTIONAL
 extern void make_blink_led_pattern(int rgb, int delay_on, int delay_off);

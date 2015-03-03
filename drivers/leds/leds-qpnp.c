@@ -936,6 +936,15 @@ struct qpnp_led_data *kpdbl_lpg2;
 static int kpdbl_brightness_flag;
 static int is_kpdbl_on;
 
+static unsigned int debug = 0;
+module_param(debug, uint, 0644);
+
+#define printk(msg...)		\
+do { 				\
+	if (debug)		\
+		printk(msg);	\
+} while (0)
+
 extern void change_led_pattern(int pattern);
 void rgb_luts_set(struct qpnp_led_data *led);
 #endif
