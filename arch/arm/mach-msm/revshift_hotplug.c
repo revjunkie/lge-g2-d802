@@ -311,7 +311,7 @@ int __init revshift_hotplug_init(void)
 		goto err;
 	}
 	hotplug_decision_wq = alloc_workqueue("hotplug_decision_work",
-				WQ_HIGHPRI | WQ_UNBOUND, 0);	
+				WQ_HIGHPRI, 0);	
 
 	INIT_DELAYED_WORK(&hotplug_decision_work, hotplug_decision_work_fn);
 	schedule_delayed_work_on(0, &hotplug_decision_work, HZ * 20);
