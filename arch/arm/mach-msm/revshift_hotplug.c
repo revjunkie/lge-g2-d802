@@ -31,7 +31,7 @@
 struct rev_tune
 {
 unsigned int shift_all;
-unsigned int shift_cpu1;
+unsigned int shift_one;
 unsigned int shift_threshold;
 unsigned int shift_all_threshold;
 unsigned int down_shift;
@@ -43,15 +43,15 @@ unsigned int down_diff;
 unsigned int shift_diff;
 unsigned int shift_diff_all;
 } rev = {
-	.shift_all = 185,
-	.shift_cpu1 = 40,
+	.shift_all = 95,
+	.shift_one = 40,
 	.shift_threshold = 2,
 	.shift_all_threshold = 1,
-	.down_shift = 30,
+	.down_shift = 10,
 	.downshift_threshold = 10,
 	.sample_time = 200,
 	.min_cpu = 1,
-	.max_cpu = 4,	
+	.max_cpu = 4,
 };
 
 struct cpu_info
@@ -76,8 +76,8 @@ do { 				\
 		pr_info(msg);	\
 } while (0)
 
-static struct delayed_work hotplug_decision_work;
-static struct workqueue_struct *hotplug_decision_wq;
+static struct delayed_work hotplug_work;
+static struct workqueue_struct *hotplug_wq;
 
 static void reset_counter(void)
 {
@@ -145,9 +145,9 @@ static inline void unplug_one(void)
 	reset_counter();
 }
 
-static void  __cpuinit hotplug_decision_work_fn(struct work_struct *work)
+static void  __cpuinit hotplug_decision_work(struct work_struct *work)
 {
-	unsigned int online_cpus, down_load, up_load, down_shift, load;
+	unsigned int online_cpus, down_load, up_load, load;
 	unsigned int cpu, total_load = 0;
 	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
 	mutex_lock(&hotplug_lock);
@@ -165,19 +165,19 @@ static void  __cpuinit hotplug_decision_work_fn(struct work_struct *work)
 		tmp_info->prev_cpu_wall = cur_wall_time;
 		tmp_info->load = 100 * (wall_time - idle_time) / wall_time;
 		if (wall_time < idle_time)
-			queue_delayed_work_on(0, hotplug_decision_wq, &hotplug_decision_work, msecs_to_jiffies(rev.sample_time));
+			break;
 		total_load += tmp_info->load;
 		}
 	put_online_cpus();
 	online_cpus = num_online_cpus();
-	load = (total_load * policy->cur) / policy->max; 
+	load = ((total_load * policy->cur) / policy->max) / online_cpus;  
 		REV_INFO("load is %d\n", load);
-	up_load = rev.shift_cpu1 * online_cpus * online_cpus;
-	down_shift = rev.shift_cpu1 * (online_cpus - 1) * (online_cpus - 1);
-	down_load = min((down_shift - rev.down_shift), (rev.shift_all - rev.down_shift));
+	up_load = ((online_cpus > 1) ? (rev.shift_one + 20) : rev.shift_one);
+	down_load = ((online_cpus > 2) ? (rev.down_shift + 25): rev.down_shift);
 	
-		if (load > rev.shift_all && rev.shift_diff_all < rev.shift_all_threshold && online_cpus < rev.max_cpu) {
-				rev.shift_diff_all++;
+		if (load > rev.shift_all && rev.shift_diff_all < rev.shift_all_threshold 
+			&& online_cpus < rev.max_cpu) {
+				++rev.shift_diff_all;
 				REV_INFO("shift_diff_all is %d\n", rev.shift_diff_all);
 			if (rev.shift_diff_all >= rev.shift_all_threshold) {		
 				hotplug_all();
@@ -188,31 +188,32 @@ static void  __cpuinit hotplug_decision_work_fn(struct work_struct *work)
 				rev.shift_diff_all = 0;
 				REV_INFO("shift_diff_all reset to %d\n", rev.shift_diff_all);
 			} 
-		if (load > up_load && load < rev.shift_all && rev.shift_diff < rev.shift_threshold && online_cpus < rev.max_cpu) {
-				rev.shift_diff++;
+		if (load > up_load && rev.shift_diff < rev.shift_threshold 
+			&& online_cpus < rev.max_cpu) {
+				++rev.shift_diff;
 				REV_INFO("shift_diff is %d\n", rev.shift_diff);
 			if (rev.shift_diff >= rev.shift_threshold) {
 				hotplug_one();	
 				}				
 		}
-		if (load <= up_load && load < rev.shift_all && rev.shift_diff > 0) {
+		if (load <= up_load && rev.shift_diff > 0) {
 				rev.shift_diff = 0;
 				REV_INFO("shift_diff reset to %d\n", rev.shift_diff);
 			}	
-		if (load < down_load && rev.down_diff < rev.downshift_threshold && online_cpus > rev.min_cpu) {
-				REV_INFO("down_load is %d\n", down_load);	
-				rev.down_diff++;
-				REV_INFO("down_diff is %d\n", rev.down_diff);
+		if (load < down_load && rev.down_diff < rev.downshift_threshold 
+			&& online_cpus > rev.min_cpu) {	
+				++rev.down_diff;
+				REV_INFO("down_diff is %d down_load is %d\n", rev.down_diff, down_load);
 			if (rev.down_diff >= rev.downshift_threshold) {
 					unplug_one();
 				}
 		}
 		if (load >= down_load && rev.down_diff > 0) {	
-				rev.down_diff--;
+				--rev.down_diff;
 				REV_INFO("down_diff reset to %d\n", rev.down_diff);
 			}
 		}		
-	queue_delayed_work_on(0, hotplug_decision_wq, &hotplug_decision_work, msecs_to_jiffies(rev.sample_time));
+	queue_delayed_work_on(0, hotplug_wq, &hotplug_work, msecs_to_jiffies(rev.sample_time));
 	mutex_unlock(&hotplug_lock);
 }
 
@@ -224,7 +225,7 @@ static ssize_t show_##file_name						\
 {									\
 	return sprintf(buf, "%u\n", rev.object);			\
 }
-show_one(shift_cpu1, shift_cpu1);
+show_one(shift_one, shift_one);
 show_one(shift_all, shift_all);
 show_one(shift_threshold, shift_threshold);
 show_one(shift_all_threshold, shift_all_threshold);
@@ -247,7 +248,7 @@ static ssize_t store_##file_name					\
 	rev.object = input;						\
 	return count;							\
 }			
-store_one(shift_cpu1, shift_cpu1);
+store_one(shift_one, shift_one);
 store_one(shift_all, shift_all);
 store_one(shift_threshold, shift_threshold);
 store_one(shift_all_threshold, shift_all_threshold);
@@ -257,7 +258,7 @@ store_one(sample_time, sample_time);
 store_one(min_cpu,min_cpu);
 store_one(max_cpu,max_cpu);
 
-static DEVICE_ATTR(shift_cpu1, 0644, show_shift_cpu1, store_shift_cpu1);
+static DEVICE_ATTR(shift_one, 0644, show_shift_one, store_shift_one);
 static DEVICE_ATTR(shift_all, 0644, show_shift_all, store_shift_all);
 static DEVICE_ATTR(shift_threshold, 0644, show_shift_threshold, store_shift_threshold);
 static DEVICE_ATTR(shift_all_threshold, 0644, show_shift_all_threshold, store_shift_all_threshold);
@@ -269,7 +270,7 @@ static DEVICE_ATTR(max_cpu, 0644, show_max_cpu, store_max_cpu);
 
 static struct attribute *revshift_hotplug_attributes[] = 
     {
-	&dev_attr_shift_cpu1.attr,
+	&dev_attr_shift_one.attr,
 	&dev_attr_shift_all.attr,
 	&dev_attr_shift_threshold.attr,
 	&dev_attr_shift_all_threshold.attr,
@@ -310,15 +311,14 @@ int __init revshift_hotplug_init(void)
 		ret = -EINVAL;
 		goto err;
 	}
-	hotplug_decision_wq = alloc_workqueue("hotplug_decision_work",
+	hotplug_wq = alloc_workqueue("hotplug_decision_work",
 				WQ_HIGHPRI, 0);	
 
-	INIT_DELAYED_WORK(&hotplug_decision_work, hotplug_decision_work_fn);
-	schedule_delayed_work_on(0, &hotplug_decision_work, HZ * 20);
+	INIT_DELAYED_WORK(&hotplug_work, hotplug_decision_work);
+	schedule_delayed_work_on(0, &hotplug_work, HZ * 20);
 	return 0;
 	
 err:
 	return ret;
 }
 late_initcall(revshift_hotplug_init);
-
