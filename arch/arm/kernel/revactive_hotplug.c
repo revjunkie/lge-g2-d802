@@ -148,17 +148,17 @@ static inline void unplug_one(void)
 static void  __cpuinit hotplug_decision_work(struct work_struct *work)
 {
 	unsigned int online_cpus, down_load, up_load, load;
-	unsigned int cpu, total_load = 0;
+	unsigned int i, total_load = 0;
 	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
 	mutex_lock(&hotplug_lock);
 	if (active) {
 	get_online_cpus();
-	for_each_online_cpu(cpu) {
+	for_each_online_cpu(i) {
 		struct cpu_info *tmp_info;
 		u64 cur_wall_time, cur_idle_time;
 		unsigned int idle_time, wall_time;
-		tmp_info = &per_cpu(rev_info, cpu);
-		cur_idle_time = get_cpu_idle_time_us(cpu, &cur_wall_time);
+		tmp_info = &per_cpu(rev_info, i);
+		cur_idle_time = get_cpu_idle_time_us(i, &cur_wall_time);
 		idle_time = (unsigned int) (cur_idle_time - tmp_info->prev_cpu_idle);
 		tmp_info->prev_cpu_idle = cur_idle_time;
 		wall_time = (unsigned int) (cur_wall_time - tmp_info->prev_cpu_wall);
@@ -173,7 +173,7 @@ static void  __cpuinit hotplug_decision_work(struct work_struct *work)
 	load = ((total_load * policy->cur) / policy->max) / online_cpus;  
 		REV_INFO("load is %d\n", load);
 	up_load = ((online_cpus > 1) ? (rev.shift_one + 20) : rev.shift_one);
-	down_load = ((online_cpus > 2) ? (rev.down_shift + 25): rev.down_shift);
+	down_load = ((online_cpus > 2) ? (rev.down_shift + 25) : rev.down_shift);
 	
 		if (load > rev.shift_all && rev.shift_diff_all < rev.shift_all_threshold 
 			&& online_cpus < rev.max_cpu) {
@@ -268,7 +268,7 @@ static DEVICE_ATTR(sample_time, 0644, show_sample_time, store_sample_time);
 static DEVICE_ATTR(min_cpu, 0644, show_min_cpu, store_min_cpu);
 static DEVICE_ATTR(max_cpu, 0644, show_max_cpu, store_max_cpu);
 
-static struct attribute *revshift_hotplug_attributes[] = 
+static struct attribute *revactive_hotplug_attributes[] = 
     {
 	&dev_attr_shift_one.attr,
 	&dev_attr_shift_all.attr,
@@ -282,29 +282,29 @@ static struct attribute *revshift_hotplug_attributes[] =
 	NULL
     };
 
-static struct attribute_group revshift_hotplug_group = 
+static struct attribute_group revactive_hotplug_group = 
     {
-	.attrs  = revshift_hotplug_attributes,
+	.attrs  = revactive_hotplug_attributes,
     };
 
-static struct miscdevice revshift_hotplug_device = 
+static struct miscdevice revactive_hotplug_device = 
     {
 	.minor = MISC_DYNAMIC_MINOR,
-	.name = "revshift_hotplug",
+	.name = "revactive_hotplug",
     };
 
-int __init revshift_hotplug_init(void)
+int __init revactive_hotplug_init(void)
 {
 	int ret;
 
-	ret = misc_register(&revshift_hotplug_device);
+	ret = misc_register(&revactive_hotplug_device);
 	if (ret)
 	{
 		ret = -EINVAL;
 		goto err;
 	}
-	ret = sysfs_create_group(&revshift_hotplug_device.this_device->kobj,
-			&revshift_hotplug_group);
+	ret = sysfs_create_group(&revactive_hotplug_device.this_device->kobj,
+			&revactive_hotplug_group);
 
 	if (ret)
 	{
@@ -321,4 +321,4 @@ int __init revshift_hotplug_init(void)
 err:
 	return ret;
 }
-late_initcall(revshift_hotplug_init);
+late_initcall(revactive_hotplug_init);
