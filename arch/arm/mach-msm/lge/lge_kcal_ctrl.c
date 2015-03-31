@@ -22,10 +22,9 @@
 #include <linux/module.h>
 #include <mach/board_lge.h>
 
-#if defined(CONFIG_LCD_KCAL)
-/*             
-                          
-                                
+/* LGE_CHANGE_S
+* change code for LCD KCAL
+* 2013-05-08, seojin.lee@lge.com
 */
 
 static struct kcal_platform_data *kcal_pdata;
@@ -125,7 +124,6 @@ int __init kcal_ctrl_init(void)
 }
 
 device_initcall(kcal_ctrl_init);
-#endif
 
 MODULE_DESCRIPTION("LGE KCAL driver");
 MODULE_LICENSE("GPL v2");

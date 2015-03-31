@@ -1,0 +1,32 @@
+#!/bin/bash
+
+release=$release
+gr='\033[1;4;32m'
+nc='\033[0;0m'
+
+read -p "ENTER RELEASE VERSION : " release
+
+export KBUILD_BUILD_VERSION="$release"
+make -j$(grep -c ^processor /proc/cpuinfo)
+
+find -name '*.ko' -exec cp -av {} /home/revjunkie/Downloads/g2/system/lib/modules \;
+
+cd /home/revjunkie/Downloads/g2-tools
+ 
+./mkbootfs ramdisk | gzip > ramdisk.gz
+ 
+./dtbTool -s 2048 -o ~/Downloads/g2-tools/dt.img ~/g2/arch/arm/boot/
+
+./mkbootimg --kernel ~/g2/arch/arm/boot/zImage --ramdisk ramdisk.gz --cmdline "console=ttyHSL0,115200,n8 androidboot.hardware=g2 user_debug=31 msm_rtb.filter=0x0 mdss_mdp.panel=1:dsi:0:qcom,mdss_dsi_g2_lgd_cmd" --base 0x00000000 --pagesize 2048 --offset 0x05000000 --tags-addr 0x04800000 --dt dt.img -o ~/Downloads/g2/boot.img
+echo -e "${gr}boot.img compiled${nc}"
+
+python2 open_bump.py ~/Downloads/g2/boot.img
+
+mv ~/Downloads/g2/boot_bumped.img ~/Downloads/g2/boot.img
+echo -e "${gr}boot.img patched${nc}"
+
+cd ../g2
+
+zip -r g2-$release.zip META-INF system rev boot.img -x \*~ 
+echo -e "${gr}Kernel Release $release is ready to flash${nc}"
+
