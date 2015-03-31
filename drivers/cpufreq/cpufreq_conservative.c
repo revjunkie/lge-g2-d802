@@ -43,7 +43,7 @@
  * this governor will not work.
  * All times here are in uS.
  */
-#define MIN_SAMPLING_RATE_RATIO			(2)
+#define MIN_SAMPLING_RATE_RATIO			(1)
 
 static unsigned int min_sampling_rate;
 
@@ -52,9 +52,10 @@ static unsigned int min_sampling_rate;
 #define DEF_SAMPLING_DOWN_FACTOR		(1)
 #define MAX_SAMPLING_DOWN_FACTOR		(10)
 #define TRANSITION_LATENCY_LIMIT		(10 * 1000 * 1000)
-#define DEF_MIDDLE_GRID_STEP 			(14)
-#define DEF_MIDDLE_GRID_LOAD			(65)
-#define DEF_OPTIMAL_FREQ					(1574400)
+#define MICRO_FREQUENCY_MIN_SAMPLE_RATE		(10000)
+#define DEF_MIDDLE_GRID_STEP 			(15)
+#define DEF_MIDDLE_GRID_LOAD	(65)
+#define DEF_OPTIMAL_FREQ					(883200)
 
 static void do_dbs_timer(struct work_struct *work);
 
@@ -305,17 +306,17 @@ static ssize_t store_optimal_max_freq(struct kobject *a, struct attribute *b,
 	 return count;
 }
 
-static ssize_t store_middle_grid_load(struct kobject *a, struct attribute *b, 
+static ssize_t store_middle_grid_load(struct kobject *a, struct attribute *b,
 				const char *buf, size_t count)
 {
-	 unsigned int input;
-	 int ret;
-	 ret = sscanf(buf, "%u", &input);
-
-	 if (ret != 1)
-	 	return -EINVAL;
-	 dbs_tuners_ins.middle_grid_load = input;
-	 return count;
+	unsigned int input;
+	int ret;
+	
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
+	dbs_tuners_ins.middle_grid_load = input;
+	return count;
 }
 
 static ssize_t store_debug_mask(struct kobject *a, struct attribute *b, 
@@ -446,20 +447,6 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		return;
 
 	/* Check for frequency increase */	
-	 if(max_load > dbs_tuners_ins.middle_grid_load){
-	 		unsigned int freq_target = 0;
-			unsigned int freq_div = 0;
-		this_dbs_info->down_skip = 0;
-		freq_div = (policy->max * dbs_tuners_ins.middle_grid_step) / 100;
-		freq_target = min(policy->max, policy->cur + freq_div);
-		  
-	if (freq_target < dbs_tuners_ins.optimal_max_freq)
-		freq_target = dbs_tuners_ins.optimal_max_freq; 
-		 
-		 __cpufreq_driver_target(policy, freq_target,
-			CPUFREQ_RELATION_L);
-			return;
-	}
 	if (max_load > dbs_tuners_ins.up_threshold) {
 		this_dbs_info->down_skip = 0;
 	 
@@ -473,7 +460,22 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 		__cpufreq_driver_target(policy, this_dbs_info->requested_freq,
 			CPUFREQ_RELATION_H);
-		return;
+		return;	
+	} else if (max_load > dbs_tuners_ins.middle_grid_load) {
+
+		unsigned int freq_target = 0;
+		unsigned int freq_div = 0;
+		freq_div = (policy->max * dbs_tuners_ins.middle_grid_step) / 100;
+		freq_target = min(policy->max, policy->cur + freq_div);
+		  
+		if (freq_target < dbs_tuners_ins.optimal_max_freq) { 
+		freq_target = dbs_tuners_ins.optimal_max_freq; 
+		} else
+		freq_target = freq_div + (max_load * (policy->max - policy->min)) / 100;
+		
+		 __cpufreq_driver_target(policy, freq_target,
+			CPUFREQ_RELATION_L);
+			return;
 	}
 
 	/* if sampling_down_factor is active break out early */
@@ -592,12 +594,6 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 				return rc;
 			}
 
-			/*
-			 * conservative does not implement micro like ondemand
-			 * governor, thus we are bound to jiffes/HZ
-			 */
-			min_sampling_rate =
-				MIN_SAMPLING_RATE_RATIO * jiffies_to_usecs(10);
 			/* Bring kernel and HW constraints together */
 			min_sampling_rate = max(min_sampling_rate,
 					MIN_LATENCY_MULTIPLIER * latency);
@@ -649,7 +645,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 					this_dbs_info->cur_policy,
 					policy->min, CPUFREQ_RELATION_L);
 		mutex_unlock(&this_dbs_info->timer_mutex);
-
+		dbs_check_cpu(this_dbs_info);
 		break;
 	}
 	return 0;
@@ -667,10 +663,30 @@ struct cpufreq_governor cpufreq_gov_conservative = {
 
 static int __init cpufreq_gov_dbs_init(void)
 {
+	u64 idle_time;
+	int cpu = get_cpu();
+
+	idle_time = get_cpu_idle_time_us(cpu, NULL);
+	put_cpu();
+	
 	dbs_wq = alloc_workqueue("conservative_dbs_wq", WQ_HIGHPRI, 0);
 	if (!dbs_wq) {
 		printk(KERN_ERR "Failed to create conservative_dbs_wq workqueue\n");
 		return -EFAULT;
+	}
+	
+	if (idle_time != -1ULL) {
+	
+		/*
+		 * In nohz/micro accounting case we set the minimum frequency
+		 * not depending on HZ, but fixed (very low). The deferred
+		 * timer might skip some samples if idle/sleeping as needed.
+		*/
+		min_sampling_rate = MICRO_FREQUENCY_MIN_SAMPLE_RATE;
+	} else {
+		/* For correct statistics, we need 10 ticks for each measure */
+		min_sampling_rate =
+			MIN_SAMPLING_RATE_RATIO * jiffies_to_usecs(10);
 	}
 
 	return cpufreq_register_governor(&cpufreq_gov_conservative);
