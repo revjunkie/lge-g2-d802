@@ -109,7 +109,7 @@ static inline void hotplug_one(void)
 	reset_counter();
 }
 
-static int get_idle_cpu(void)
+static inline void unplug_one(void)
 {
 	int i, cpu = 0;
 	unsigned long i_state = 0;
@@ -131,17 +131,10 @@ static int get_idle_cpu(void)
 				i_state = idle_info->cur;
 		}
 	}
-	return cpu;
-}
-
-static inline void unplug_one(void)
-{	
-	int cpu = get_idle_cpu();
-	
-	if (cpu != 0) 
+	if (cpu != 0 && i_state > 0) { 
 		cpu_down(cpu);
 		REV_INFO("offline cpu %d\n", cpu);
-		
+	}
 	reset_counter();
 }
 
@@ -149,7 +142,6 @@ static void  __cpuinit hotplug_decision_work(struct work_struct *work)
 {
 	unsigned int online_cpus, down_load, up_load, load;
 	unsigned int i, total_load = 0;
-	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
 	mutex_lock(&hotplug_lock);
 	if (active) {
 	get_online_cpus();
@@ -163,17 +155,17 @@ static void  __cpuinit hotplug_decision_work(struct work_struct *work)
 		tmp_info->prev_cpu_idle = cur_idle_time;
 		wall_time = (unsigned int) (cur_wall_time - tmp_info->prev_cpu_wall);
 		tmp_info->prev_cpu_wall = cur_wall_time;
+		if (unlikely(!wall_time || wall_time < idle_time))
+			continue;
 		tmp_info->load = 100 * (wall_time - idle_time) / wall_time;
-		if (wall_time < idle_time)
-			break;
 		total_load += tmp_info->load;
 		}
 	put_online_cpus();
 	online_cpus = num_online_cpus();
-	load = ((total_load * policy->cur) / policy->max) / online_cpus;  
+	load = (total_load * cpufreq_quick_get(0) / cpufreq_quick_get_max(0)) / online_cpus;  
 		REV_INFO("load is %d\n", load);
-	up_load = ((online_cpus > 1) ? (rev.shift_one + 20) : rev.shift_one);
-	down_load = ((online_cpus > 2) ? (rev.down_shift + 25) : rev.down_shift);
+	up_load = online_cpus > 1 ? rev.shift_one + 20 : rev.shift_one;
+	down_load = online_cpus > 2 ? rev.down_shift + 25 : rev.down_shift;
 	
 		if (load > rev.shift_all && rev.shift_diff_all < rev.shift_all_threshold 
 			&& online_cpus < rev.max_cpu) {
