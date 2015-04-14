@@ -38,7 +38,7 @@
 #define MICRO_FREQUENCY_MIN_SAMPLE_RATE		(10000)
 #define MIN_FREQUENCY_UP_THRESHOLD		(11)
 #define MAX_FREQUENCY_UP_THRESHOLD		(100)
-#define TOUCH_LOAD				(65)
+#define TOUCH_LOAD				(40)
 #define TOUCH_LOAD_THRESHOLD			(10)
 #define TOUCH_LOAD_DURATION			(1500)
 
@@ -623,7 +623,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		max_load = dbs_tuners_ins.touch_load;
 
 	/* Check for frequency increase */
-	if (max_load > dbs_tuners_ins.up_threshold * policy->cur) {
+	if (max_load > dbs_tuners_ins.up_threshold) {
 		/* If switching to max speed, apply sampling_down_factor */
 		if (policy->cur < policy->max)
 			this_dbs_info->rate_mult =
