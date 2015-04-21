@@ -2638,13 +2638,13 @@ find_idlest_cpu(struct sched_group *group, struct task_struct *p, int this_cpu)
 /*
  * Try and locate an idle CPU in the sched_domain.
  */
-static int select_idle_sibling(struct task_struct *p, int target)
+static int select_idle_sibling(struct task_struct *p, int target, int sync)
 {
 	struct sched_domain *sd;
 	struct sched_group *sg;
 	int i = task_cpu(p);
 
-	if (idle_cpu(target))
+	if (idle_cpu(target) || (sync && cpu_rq(target)->nr_running == 1))
 		return target;
 
 	/*
@@ -2769,7 +2769,7 @@ select_task_rq_fair(struct task_struct *p, int sd_flag, int wake_flags)
 		if (cpu == prev_cpu || wake_affine(affine_sd, p, sync))
 			prev_cpu = cpu;
 
-		new_cpu = select_idle_sibling(p, prev_cpu);
+		new_cpu = select_idle_sibling(p, prev_cpu, sync);
 		goto unlock;
 	}
 
