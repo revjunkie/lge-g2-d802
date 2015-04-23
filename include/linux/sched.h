@@ -1069,6 +1069,8 @@ unsigned long default_scale_smt_power(struct sched_domain *sd, int cpu);
 
 bool cpus_share_cache(int this_cpu, int that_cpu);
 
+extern void wake_up_if_idle(int cpu);
+
 #else /* CONFIG_SMP */
 
 struct sched_domain_attr;
