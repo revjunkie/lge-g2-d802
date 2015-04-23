@@ -1223,7 +1223,7 @@ bail_acq_sema_failed:
 	put_online_cpus();
 	return;
 }
-
+#ifndef CONFIG_SCHED_BFS
 static int dbs_migration_notify(struct notifier_block *nb,
 				unsigned long target_cpu, void *arg)
 {
@@ -1239,7 +1239,7 @@ static int dbs_migration_notify(struct notifier_block *nb,
 static struct notifier_block dbs_migration_nb = {
 	.notifier_call = dbs_migration_notify,
 };
-
+#endif
 static int sync_pending(struct cpu_dbs_info_s *this_dbs_info)
 {
 	return atomic_read(&this_dbs_info->src_sync_cpu) >= 0;
@@ -1491,9 +1491,10 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 
 			if (dbs_tuners_ins.sync_freq == 0)
 				dbs_tuners_ins.sync_freq = policy->min;
-
+#ifndef CONFIG_SCHED_BFS
 			atomic_notifier_chain_register(&migration_notifier_head,
 					&dbs_migration_nb);
+#endif		
 		}
 		if (!cpu)
 			rc = input_register_handler(&dbs_input_handler);
@@ -1527,9 +1528,11 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		if (!dbs_enable) {
 			sysfs_remove_group(cpufreq_global_kobject,
 					   &dbs_attr_group);
+#ifndef CONFIG_SCHED_BFS
 			atomic_notifier_chain_unregister(
 				&migration_notifier_head,
 				&dbs_migration_nb);
+#endif
 		}
 
 		mutex_unlock(&dbs_mutex);
