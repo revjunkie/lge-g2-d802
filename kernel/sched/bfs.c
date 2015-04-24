@@ -774,6 +774,21 @@ out:
 	resched_task(cpu_rq(best_cpu)->curr);
 }
 
+void wake_up_if_idle(int cpu)
+{
+	struct rq *rq = cpu_rq(cpu);
+	unsigned long flags;
+
+	if (!is_idle_task(rq->curr))
+		return;
+
+	grq_lock_irqsave(&flags);
+	if (likely(is_idle_task(rq->curr)))
+		smp_send_reschedule(cpu);
+	/* Else cpu is not in idle, do nothing here */
+	grq_unlock_irqrestore(&flags);
+}
+
 bool cpus_share_cache(int this_cpu, int that_cpu)
 {
 	struct rq *this_rq = cpu_rq(this_cpu);
