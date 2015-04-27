@@ -401,3 +401,15 @@ config USE_USER_ACCESSIBLE_TIMERS
 	  architecture-specific code that will need to be enabled
 	  separately.
 
+config PROCESS_RECLAIM
+	bool "Enable per process reclaim"
+	depends on PROC_FS
+	default y
+	help
+	 It allows to reclaim pages of the process by /proc/pid/reclaim.
+
+	 (echo 1 > /proc/PID/reclaim) reclaims file-backed pages only.
+	 (echo 2 > /proc/PID/reclaim) reclaims anonymous pages only.
+	 (echo 3 > /proc/PID/reclaim) reclaims all pages.
+
+	 Any other vaule is ignored.
