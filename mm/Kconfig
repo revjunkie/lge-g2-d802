@@ -413,3 +413,17 @@ config PROCESS_RECLAIM
 	 (echo 3 > /proc/PID/reclaim) reclaims all pages.
 
 	 Any other vaule is ignored.
+	 
+config VMPRESSURE
+	bool "Enable vmpressure_fd() notifications"
+	help
+	  This option enables vmpressure_fd() system call, it is used to
+	  notify userland applications about system's virtual memory
+	  pressure state.
+
+	  Upon these notifications, userland programs can cooperate with
+	  the kernel (e.g. free easily reclaimable resources), and so
+	  achieving better system's memory management.
+
+	  If unsure, say N.
+	

@@ -49,6 +49,7 @@
 #include <linux/dnotify.h>
 #include <linux/syscalls.h>
 #include <linux/vmstat.h>
+#include <linux/vmpressure.h>
 #include <linux/nfs_fs.h>
 #include <linux/acpi.h>
 #include <linux/reboot.h>
@@ -1356,6 +1357,36 @@ static struct ctl_table vm_table[] = {
 		.maxlen		= NUMA_ZONELIST_ORDER_LEN,
 		.mode		= 0644,
 		.proc_handler	= numa_zonelist_order_handler,
+	},
+#endif
+#ifdef CONFIG_VMPRESSURE
+	{
+		.procname	= "vmpressure_window",
+		.data		= &vmpressure_win,
+		.maxlen		= sizeof(vmpressure_win),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "vmpressure_level_medium",
+		.data		= &vmpressure_level_med,
+		.maxlen		= sizeof(vmpressure_level_med),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "vmpressure_level_oom",
+		.data		= &vmpressure_level_oom,
+		.maxlen		= sizeof(vmpressure_level_oom),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "vmpressure_level_oom_priority",
+		.data		= &vmpressure_level_oom_prio,
+		.maxlen		= sizeof(vmpressure_level_oom_prio),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
 	},
 #endif
 #if (defined(CONFIG_X86_32) && !defined(CONFIG_UML))|| \
