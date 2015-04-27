@@ -1091,53 +1091,111 @@ cont:
 	return 0;
 }
 
-#define RECLAIM_FILE (1 << 0)
-#define RECLAIM_ANON (1 << 1)
-#define RECLAIM_ALL (RECLAIM_FILE | RECLAIM_ANON)
+enum reclaim_type {
+	RECLAIM_FILE = 1,
+	RECLAIM_ANON,
+	RECLAIM_ALL,
+	RECLAIM_FILE_RANGE,
+	RECLAIM_ANON_RANGE,
+	RECLAIM_BOTH_RANGE,
+};
 
 static ssize_t reclaim_write(struct file *file, const char __user *buf,
 				size_t count, loff_t *ppos)
 {
 	struct task_struct *task;
-	char buffer[PROC_NUMBUF];
+	char buffer[200];
 	struct mm_struct *mm;
 	struct vm_area_struct *vma;
 	int type;
-	int rv;
-
+	int ret;
+	char *sptr, *token;
+	unsigned long len_in;
+	unsigned long start = 0;
+	unsigned long end = 0;
+	struct mm_walk reclaim_walk = {};
+	
 	memset(buffer, 0, sizeof(buffer));
 	if (count > sizeof(buffer) - 1)
-		count = sizeof(buffer) - 1;
+		goto out_err;
+		
 	if (copy_from_user(buffer, buf, count))
 		return -EFAULT;
-	rv = kstrtoint(strstrip(buffer), 10, &type);
-	if (rv < 0)
-		return rv;
-	if (type < RECLAIM_ALL || type > RECLAIM_FILE)
-		return -EINVAL;
+	
+	sptr = strstrip(buffer);
+	token = strsep(&sptr, " ");
+	if (!token)
+		goto out_err;
+	ret = kstrtoint(token, 10, &type);
+	if (ret < 0 || (type < RECLAIM_FILE || type > RECLAIM_BOTH_RANGE))
+		goto out_err;
+
+	if (type > RECLAIM_ALL) {
+		size_t len;
+		token = strsep(&sptr, " ");
+		if (!token)
+			goto out_err;
+		ret = kstrtoul(token, 10, &start);
+		if (ret < 0)
+			goto out_err;
+
+		token = strsep(&sptr, " ");
+		if (!token)
+			goto out_err;
+		ret = kstrtoul(token, 10, &len_in);
+		if (ret < 0)
+			goto out_err;
+		len = (len_in + ~PAGE_MASK) & PAGE_MASK;
+
+		/*
+		 * Check to see whether len was rounded up from small -ve
+		 * to zero.
+		 */
+		if (len_in && !len)
+			goto out_err;
+
+		end = start + len;
+		if (end < start)
+			goto out_err;
+	}
+
 	task = get_proc_task(file->f_path.dentry->d_inode);
 	if (!task)
 		return -ESRCH;
+		
 	mm = get_task_mm(task);
-	if (mm) {
-		struct mm_walk reclaim_walk = {
-			.pmd_entry = reclaim_pte_range,
-			.mm = mm,
-		};
-		down_read(&mm->mmap_sem);
+	if (!mm)
+		goto out;
+
+	reclaim_walk.mm = mm;
+	reclaim_walk.pmd_entry = reclaim_pte_range;
+
+	down_read(&mm->mmap_sem);
+	if (type > RECLAIM_ALL) {
+		vma = find_vma(mm, start);
+		while (vma) {
+			if (vma->vm_start > end)
+				break;
+
+			reclaim_walk.private = vma;
+			if (is_vm_hugetlb_page(vma))
+				continue;
+			if (type == RECLAIM_ANON_RANGE && vma->vm_file)
+				continue;
+			if (type == RECLAIM_FILE_RANGE && !vma->vm_file)
+				continue;
+
+			walk_page_range(max(vma->vm_start, start),
+					min(vma->vm_end, end),
+					&reclaim_walk);
+
+			vma = vma->vm_next;
+		}
+	} else {
 		for (vma = mm->mmap; vma; vma = vma->vm_next) {
 			reclaim_walk.private = vma;
 			if (is_vm_hugetlb_page(vma))
 				continue;
-			/*
-			 * Writing 1 to /proc/pid/reclaim only affects file
-			 * mapped pages.
-			 *
-			 * Writing 2 to /proc/pid/reclaim enly affects
-			 * anonymous pages.
-			 *
-			 * Writing 3 to /proc/pid/reclaim affects all pages.
-			 */
 			if (type == RECLAIM_ANON && vma->vm_file)
 				continue;
 			if (type == RECLAIM_FILE && !vma->vm_file)
@@ -1145,13 +1203,18 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 			walk_page_range(vma->vm_start, vma->vm_end,
 					&reclaim_walk);
 		}
-		flush_tlb_mm(mm);
-		up_read(&mm->mmap_sem);
-		mmput(mm);
 	}
+	
+	flush_tlb_mm(mm);
+	up_read(&mm->mmap_sem);
+	mmput(mm);
+out:
 	put_task_struct(task);
 
 	return count;
+
+out_err:
+	return -EINVAL;
 }
 
 const struct file_operations proc_reclaim_operations = {

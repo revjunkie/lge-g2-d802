@@ -85,11 +85,14 @@ static inline void get_page_foll(struct page *page)
 
 extern unsigned long highest_memmap_pfn;
 
+
 /*
  * in mm/vmscan.c:
  */
 extern unsigned long zone_reclaimable_pages(struct zone *zone);
 extern bool zone_reclaimable(struct zone *zone);
+extern int isolate_lru_page(struct page *page);
+extern void putback_lru_page(struct page *page);
 
 /*
  * in mm/page_alloc.c

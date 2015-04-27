@@ -2681,13 +2681,17 @@ static int mem_cgroup_move_parent(struct page *page,
 		return -EINVAL;
 
 	ret = -EBUSY;
+	if (!get_page_unless_zero(page))
+		goto out;
+	if (isolate_lru_page(page))
+		goto put;
 
 	nr_pages = hpage_nr_pages(page);
 
 	parent = mem_cgroup_from_cont(pcg);
 	ret = __mem_cgroup_try_charge(NULL, gfp_mask, nr_pages, &parent, false);
 	if (ret)
-		goto out;
+		goto put_back;
 
 	if (nr_pages > 1)
 		flags = compound_lock_irqsave(page);
@@ -2698,6 +2702,10 @@ static int mem_cgroup_move_parent(struct page *page,
 
 	if (nr_pages > 1)
 		compound_unlock_irqrestore(page, flags);
+put_back:
+	putback_lru_page(page);
+put:
+	put_page(page);
 out:
 	return ret;
 }
@@ -5485,7 +5493,7 @@ static int mem_cgroup_move_charge_pte_range(pmd_t *pmd,
 		target_type = get_mctgt_type_thp(vma, addr, *pmd, &target);
 		if (target_type == MC_TARGET_PAGE) {
 			page = target.page;
-		
+			if (!isolate_lru_page(page)) {
 				pc = lookup_page_cgroup(page);
 				if (!mem_cgroup_move_account(page, HPAGE_PMD_NR,
 							     pc, mc.from, mc.to,
@@ -5493,6 +5501,8 @@ static int mem_cgroup_move_charge_pte_range(pmd_t *pmd,
 					mc.precharge -= HPAGE_PMD_NR;
 					mc.moved_charge += HPAGE_PMD_NR;
 				}
+				putback_lru_page(page);
+			}
 			put_page(page);
 		}
 		spin_unlock(&vma->vm_mm->page_table_lock);
@@ -5513,6 +5523,8 @@ retry:
 		switch (get_mctgt_type(vma, addr, ptent, &target)) {
 		case MC_TARGET_PAGE:
 			page = target.page;
+			if (isolate_lru_page(page))
+				goto put;
 			pc = lookup_page_cgroup(page);
 			if (!mem_cgroup_move_account(page, 1, pc,
 						     mc.from, mc.to, false)) {
@@ -5520,8 +5532,9 @@ retry:
 				/* we uncharge from mc.from later. */
 				mc.moved_charge++;
 			}
-		/* get_mctgt_type() gets the page */
-			
+			putback_lru_page(page);
+put:			/* get_mctgt_type() gets the page */
+			put_page(page);
 			break;
 		case MC_TARGET_SWAP:
 			ent = target.ent;
