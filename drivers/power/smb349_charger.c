@@ -1694,7 +1694,7 @@ module_param_call(smb349_irq_debug, smb349_irq_debug_set, param_get_int,
 		&smb349_irq_debug, 0644);
 
 #define FACTORY_LOWEST_CHG_CURRENT_130K     500
-#define FACTORY_LOWEST_CHG_CURRENT_OTHERS   300
+#define FACTORY_LOWEST_CHG_CURRENT_OTHERS   500
 #ifdef CONFIG_LGE_CHARGER_TEMP_SCENARIO
 static int smb349_thermal_mitigation;
 static int

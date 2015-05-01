@@ -309,9 +309,13 @@ void lge_monitor_batt_temp(struct charging_info req, struct charging_rsp *res)
 			res->dc_current = 1600;
 		else if (req.chg_current_te <= req.chg_current_ma)
 #else
-	    if (req.chg_current_te <= req.chg_current_ma)
+	    if (req.chg_current_te <= req.chg_current_ma) {
 #endif
+		if (req.batt_temp <= 40) 
+			res->dc_current = req.chg_current_ma;
+		else
 			res->dc_current = req.chg_current_te;
+		}
 		else
 			res->dc_current = req.chg_current_ma;
 	} else if (charging_state == CHG_BATT_DECCUR_STATE) {
