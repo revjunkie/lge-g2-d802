@@ -122,21 +122,21 @@ case "$target" in
                 echo 90 > /sys/devices/system/cpu/cpufreq/ondemand/up_threshold
                 echo 1 > /sys/devices/system/cpu/cpufreq/ondemand/io_is_busy
                 echo 2 > /sys/devices/system/cpu/cpufreq/ondemand/sampling_down_factor
-                echo 10 > /sys/devices/system/cpu/cpufreq/ondemand/down_differential
-                echo 70 > /sys/devices/system/cpu/cpufreq/ondemand/up_threshold_multi_core
-                echo 3 > /sys/devices/system/cpu/cpufreq/ondemand/down_differential_multi_core
-                echo 960000 > /sys/devices/system/cpu/cpufreq/ondemand/optimal_freq
-                echo 960000 > /sys/devices/system/cpu/cpufreq/ondemand/sync_freq
+                #echo 10 > /sys/devices/system/cpu/cpufreq/ondemand/down_differential
+                #echo 70 > /sys/devices/system/cpu/cpufreq/ondemand/up_threshold_multi_core
+                #echo 3 > /sys/devices/system/cpu/cpufreq/ondemand/down_differential_multi_core
+                #echo 960000 > /sys/devices/system/cpu/cpufreq/ondemand/optimal_freq
+                #echo 960000 > /sys/devices/system/cpu/cpufreq/ondemand/sync_freq
                 # even if scaling_max_freq go down because of themal mitigation, input_boost frequency does not go down.
                 # echo 1190400 > /sys/devices/system/cpu/cpufreq/ondemand/input_boost
-                echo 80 > /sys/devices/system/cpu/cpufreq/ondemand/up_threshold_any_cpu_load
+                #echo 80 > /sys/devices/system/cpu/cpufreq/ondemand/up_threshold_any_cpu_load
 
                 #Set LGE Ondemand-Grid parameters for msm8974aa
-                echo 960000 > /sys/devices/system/cpu/cpufreq/ondemand/optimal_max_freq
-                echo 7 > /sys/devices/system/cpu/cpufreq/ondemand/middle_grid_step
-                echo 40 > /sys/devices/system/cpu/cpufreq/ondemand/middle_grid_load
-                echo 14 > /sys/devices/system/cpu/cpufreq/ondemand/high_grid_step
-                echo 50 > /sys/devices/system/cpu/cpufreq/ondemand/high_grid_load
+                #echo 960000 > /sys/devices/system/cpu/cpufreq/ondemand/optimal_max_freq
+                #echo 7 > /sys/devices/system/cpu/cpufreq/ondemand/middle_grid_step
+                #echo 40 > /sys/devices/system/cpu/cpufreq/ondemand/middle_grid_load
+                #echo 14 > /sys/devices/system/cpu/cpufreq/ondemand/high_grid_step
+                #echo 50 > /sys/devices/system/cpu/cpufreq/ondemand/high_grid_load
             ;;
         esac
         echo 300000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
@@ -173,12 +173,23 @@ case "$emmc_boot"
 esac
 
 # Post-setup services
-
         if [ "1" == "$battery_present" ]; then
             start mpdecision
         fi
         echo 512 > /sys/block/mmcblk0/bdi/read_ahead_kb
-        echo 12288,15360,18432,21504,24576,30720 > /sys/module/lowmemorykiller/parameters/minfree
+        echo 8192,12288,18432,21504,24576,30720 > /sys/module/lowmemorykiller/parameters/minfree
+       	#enable headset high performance mode
+       	echo 1 > /sys/module/snd_soc_wcd9320/parameters/high_perf_mode
+       	echo 0 > /sys/module/lge_touch_core/parameters/debug_mask
+       	#boeflla_sound settings
+       	echo 1 > /sys/class/misc/boeffla_sound/boeffla_sound
+       	echo 8 > /sys/class/misc/boeffla_sound/speaker_volume
+       	echo "5 5" > /sys/class/misc/boeffla_sound/headphone_volume
+       	#preserve services oom_kill
+       	if [ -f /sys/module/lowmemorykiller/parameters/donotkill_sysproc ]; then
+	echo 1 > /sys/module/lowmemorykiller/parameters/donotkill_sysproc
+	echo "android.process.acore,com.qualcomm.telephony,com.android.settings," > /sys/module/lowmemorykiller/parameters/donotkill_sysproc_names
+	fi
         stop mpdecision
    
 
@@ -229,4 +240,43 @@ case "$targetProd" in
 						chmod 775 /data/connectivity/nsrm/NsrmConfiguration.xml
 			;;
 esac
+
+# start init.d scripts
+mount -o remount,rw /;
+mount -o rw,remount /system
+
+echo 10000 > cpu.cfs_quota_us
+echo 50000 > cpu.cfs_period_us
+
+if [ ! -e /system/etc/init.d ]; then
+	mkdir /system/etc/init.d
+	chown -R root.root /system/etc/init.d
+	chmod -R 755 /system/etc/init.d
+fi
+
+if [ ! -e /system/etc/init.d/07rev ]; then
+	cat > /system/etc/init.d/07rev
+	echo '#!/system/bin/sh\n 
+#=================================================
+# Remove # to apply new values, then reboot
+#
+# BOEFFLA SOUND
+#echo 1 > /sys/class/misc/boeffla_sound/boeffla_sound	
+#echo 8 > /sys/class/misc/boeffla_sound/speaker_volume
+#echo 5 5 > /sys/class/misc/boeffla_sound/headphone_volume\n
+# REV HOTPLUG
+#echo 1 >/sys/kernel/rev_hotplug/tune/active
+#echo 60 > /sys/kernel/rev_hotplug/tune/shift_one
+#echo 98 > /sys/kernel/rev_hotplug/tune/shift_all
+#echo 30 > /sys/kernel/rev_hotplug/tune/down_shift
+#echo 1 > /sys/kernel/rev_hotplug/tune/min_cpu
+#echo 4 > /sys/kernel/rev_hotplug/tune/max_cpu
+#\n' > /system/etc/init.d/07rev
+	chmod -R 755 /system/etc/init.d/07rev
+fi
+		
+for FILE in /system/etc/init.d/*; do
+	sh $FILE > /dev/null
+done;
+
 # 2013-10-07 ct-radio@lge.com LGP_DATA_TCPIP_NSRM [END]

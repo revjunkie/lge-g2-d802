@@ -33,6 +33,9 @@ modules.builtin
 *.patch
 *.gcno
 *.dtb
+zImage
+zImage-dtb
+Image
 
 #
 # Top-level generic files
@@ -46,7 +49,7 @@ modules.builtin
 /Module.markers
 /Module.symvers
 /scripts
-arch/arm/boot
+/arch/arm/boot/compressed
 
 #
 # Debian directory (make deb-pkg)

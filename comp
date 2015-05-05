@@ -4,7 +4,7 @@ release=$release
 gr='\033[1;4;32m'
 nc='\033[0;0m'
 
-rm ~/Downloads/g2-tools/lp-ram/dt.img
+rm ~/Downloads/g2-tools/dt.img
 rm ~/Downloads/g2/system/lib/modules/*
 echo -e "${gr}Cleanup Files${nc}"
 
@@ -15,11 +15,11 @@ make -j$(grep -c ^processor /proc/cpuinfo)
 
 find -name '*.ko' -exec cp -av {} /home/revjunkie/Downloads/g2/system/lib/modules \;
 
-cd ~/Downloads/g2-tools/lp-ram
+cd ~/Downloads/g2-tools
  
 ./mkbootfs ~/g2/ramdisk | gzip > ramdisk.gz
  
-./dtbTool -o ~/Downloads/g2-tools/lp-ram/dt.img -s 2048 -p /usr/bin/ ~/g2/arch/arm/boot/
+./dtbTool -o ~/Downloads/g2-tools/dt.img -s 2048 -p ~/g2/scripts/dtc/ ~/g2/arch/arm/boot/
 
 ./mkbootimg --kernel ~/g2/arch/arm/boot/zImage --ramdisk ramdisk.gz --cmdline "console=ttyHSL0,115200,n8 user_debug=31 ehci-hcd.park=3 msm_rtb.filter=0x0 mdss_mdp.panel=1:dsi:0:qcom,mdss_dsi_g2_lgd_cmd androidboot.hardware=g2" --base 0x00000000 --pagesize 2048 --offset 0x05000000 --tags-addr 0x00000100 --dt dt.img -o ~/Downloads/g2/boot.img
 echo -e "${gr}boot.img compiled${nc}"
@@ -31,6 +31,6 @@ echo -e "${gr}boot.img patched${nc}"
 
 cd ~/Downloads/g2
 
-zip -r revk-g2-$release.zip META-INF system rev boot.img -x \*~ 
+zip -r D802-revk-b$release.zip META-INF system rev boot.img -x \*~ 
 echo -e "${gr}Kernel Release $release is ready to flash${nc}"
 
