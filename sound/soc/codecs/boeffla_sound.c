@@ -47,8 +47,8 @@ static int debug;			// debug switch
 
 static int headphone_volume_l;
 static int headphone_volume_r;
-static int speaker_volume;	//galbi doesn't have stereo hardware speakers
-//static int speaker_volume_r;
+static int speaker_volume_l;
+static int speaker_volume_r;
 //static int mic_level;
 
 
@@ -88,15 +88,15 @@ unsigned int boeffla_sound_hook_taiko_write(unsigned int reg, unsigned int value
 			break;
 		}
 
-//		case TAIKO_A_CDC_RX3_VOL_CTL_B2_CTL: // speaker
-//		{
-//			value = speaker_volume_l;
-//			break;
-//		}
+		case TAIKO_A_CDC_RX3_VOL_CTL_B2_CTL: // speaker
+		{
+			value = speaker_volume_l;
+			break;
+		}
 
 		case TAIKO_A_CDC_RX7_VOL_CTL_B2_CTL: // speaker
 		{
-			value = speaker_volume;
+			value = speaker_volume_r;
 			break;
 		}
 
@@ -123,8 +123,8 @@ static void reset_boeffla_sound(void)
 	// set all boeffla sound config settings to defaults
 	headphone_volume_l = HEADPHONE_DEFAULT;
 	headphone_volume_r = HEADPHONE_DEFAULT;
-	speaker_volume = SPEAKER_DEFAULT;
-//	speaker_volume_r = SPEAKER_DEFAULT;
+	speaker_volume_l = SPEAKER_DEFAULT;
+	speaker_volume_r = SPEAKER_DEFAULT;
 //	mic_level = MICLEVEL_DEFAULT;
 
 	if (debug)
@@ -138,7 +138,7 @@ static void reset_audio_hub(void)
 	taiko_write_no_hook(codec, TAIKO_A_CDC_RX1_VOL_CTL_B2_CTL, HEADPHONE_DEFAULT + HEADPHONE_REG_OFFSET);
 	taiko_write_no_hook(codec, TAIKO_A_CDC_RX2_VOL_CTL_B2_CTL, HEADPHONE_DEFAULT + HEADPHONE_REG_OFFSET);
 
-//	taiko_write_no_hook(codec, TAIKO_A_CDC_RX3_VOL_CTL_B2_CTL, SPEAKER_DEFAULT + SPEAKER_REG_OFFSET);
+	taiko_write_no_hook(codec, TAIKO_A_CDC_RX3_VOL_CTL_B2_CTL, SPEAKER_DEFAULT + SPEAKER_REG_OFFSET);
 	taiko_write_no_hook(codec, TAIKO_A_CDC_RX7_VOL_CTL_B2_CTL, SPEAKER_DEFAULT + SPEAKER_REG_OFFSET);
 
 //	taiko_write_no_hook(codec, TAIKO_A_CDC_TX7_VOL_CTL_GAIN, MICLEVEL_DEFAULT + MICLEVEL_REG_OFFSET);
@@ -255,8 +255,8 @@ static ssize_t headphone_volume_store(struct device *dev, struct device_attribut
 static ssize_t speaker_volume_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	// print current values
-	return sprintf(buf, "Speaker volume: %d\n", 
-		speaker_volume);
+	return sprintf(buf, "Speaker volume:\nLeft: %d\nRight: %d\n", 
+		speaker_volume_l, speaker_volume_r);
 }
 
 
@@ -264,45 +264,45 @@ static ssize_t speaker_volume_store(struct device *dev, struct device_attribute 
 					const char *buf, size_t count)
 {
 	unsigned int ret = -EINVAL;
-	int val;
-	//int val_r;
+	int val_l;
+	int val_r;
 
 	// Terminate if boeffla sound is not enabled
 	if (!boeffla_sound)
 		return count;
 		
 	// read values from input buffer
-	ret = sscanf(buf, "%d", &val);
+	ret = sscanf(buf, "%d %d", &val_l, &val_r);
 
-	if (ret != 1)
+	if (ret != 2)
 		return -EINVAL;
 		
 	// check whether values are within the valid ranges and adjust accordingly
-	if (val > SPEAKER_MAX)
-		val = SPEAKER_MAX;
+	if (val_l > SPEAKER_MAX)
+		val_l = SPEAKER_MAX;
 
-	if (val < SPEAKER_MIN)
-		val = SPEAKER_MIN;
+	if (val_l < SPEAKER_MIN)
+		val_l = SPEAKER_MIN;
 
-	//if (val_r > SPEAKER_MAX)
-	//	val_r = SPEAKER_MAX;
+	if (val_r > SPEAKER_MAX)
+		val_r = SPEAKER_MAX;
 
-	//if (val_r < SPEAKER_MIN)
-	//	val_r = SPEAKER_MIN;
+	if (val_r < SPEAKER_MIN)
+		val_r = SPEAKER_MIN;
 
 	// store new values
-	speaker_volume = val;
-	//speaker_volume_r = val_r;
+	speaker_volume_l = val_l;
+	speaker_volume_r = val_r;
 
 	// set new values
-	//taiko_write_no_hook(codec, TAIKO_A_CDC_RX3_VOL_CTL_B2_CTL, 
-	//	speaker_volume_l + SPEAKER_REG_OFFSET);
+	taiko_write_no_hook(codec, TAIKO_A_CDC_RX3_VOL_CTL_B2_CTL, 
+		speaker_volume_l + SPEAKER_REG_OFFSET);
 	taiko_write_no_hook(codec, TAIKO_A_CDC_RX7_VOL_CTL_B2_CTL, 
-		speaker_volume + SPEAKER_REG_OFFSET);
+		speaker_volume_r + SPEAKER_REG_OFFSET);
 
 	// print debug info
 	if (debug)
-		printk("Boeffla-sound: speaker volume %d\n", speaker_volume);
+		printk("Boeffla-sound: speaker volume L=%d R=%d\n", speaker_volume_l, speaker_volume_r);
 
 	return count;
 }

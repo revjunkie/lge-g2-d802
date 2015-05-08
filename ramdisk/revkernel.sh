@@ -183,7 +183,7 @@ esac
        	echo 0 > /sys/module/lge_touch_core/parameters/debug_mask
        	#boeflla_sound settings
        	echo 1 > /sys/class/misc/boeffla_sound/boeffla_sound
-       	echo 8 > /sys/class/misc/boeffla_sound/speaker_volume
+       	echo "8 8" > /sys/class/misc/boeffla_sound/speaker_volume
        	echo "5 5" > /sys/class/misc/boeffla_sound/headphone_volume
        	#preserve services oom_kill
        	if [ -f /sys/module/lowmemorykiller/parameters/donotkill_sysproc ]; then
@@ -262,7 +262,7 @@ if [ ! -e /system/etc/init.d/07rev ]; then
 #
 # BOEFFLA SOUND
 #echo 1 > /sys/class/misc/boeffla_sound/boeffla_sound	
-#echo 8 > /sys/class/misc/boeffla_sound/speaker_volume
+#echo 8 8 > /sys/class/misc/boeffla_sound/speaker_volume
 #echo 5 5 > /sys/class/misc/boeffla_sound/headphone_volume\n
 # REV HOTPLUG
 #echo 1 >/sys/kernel/rev_hotplug/tune/active
