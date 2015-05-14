@@ -1,0 +1,47 @@
+RevKernel b2
+
+Changelog 05.14.15
+	2851162 - rev: use per-cpu freq on load calculation
+	55ccc75 - staging: binder: Change binder mutex to rtmutex.
+	1efe800 - Staging: android: binder: Add some tracepoints
+	1237734 - Makefile: add flags from showp1984 and use vfpfloat=hard
+	05afda4 - lz4: add overrun checks to lz4_uncompress_unknownoutputsize()
+	d708f3b - lz4: fix another possible overrun
+	350242a - lz4: ensure length does not wrap
+	9dfd165 - lz4: fix compression/decompression signedness mismatch
+	784cbc6 - lib/lz4: correct the LZ4 license
+	fac38a0 - msm: memutils: optimize memcpy for cortex-A15
+	54dc040 - msm: memutils: 8974: memcpy, memmove optimization
+	6e2516b - msm: memutils: memcpy, memmove optimization
+	3b8fe58 - msm: memutils: memcpy, memmove, copy_page optimization
+	28dcf75 - sched: Remove stale power aware scheduling remnants and dysfunctional 
+	4ada449 - sched/nohz: Fix rq->cpu_load calculations some more
+	c65d599 - sched/nohz: Fix rq->cpu_load[] calculations
+	fc19ddd - sched: Guarantee new group-entities always have weight
+	a3104d7 - sched: Fix hrtimer_cancel()/rq->lock deadlock
+	4df70a8 - sched: Fix cfs_bandwidth misuse of hrtimer_expires_remaining
+	51d0a12 - sched: Fix race on toggling cfs_bandwidth_used
+	1f829f5 - sched: Avoid throttle_cfs_rq() racing with period_timer stopping
+	012ecf9 - msm: mdss: KCAL: Read values from MDP registers wherever possible
+	2e8c0a7 - msm: mdss: KCAL: Apply default values on boot
+	feeff6a - msm: mdss: KCAL: Queue changes when panel is powered off
+	5953cab - msm: mdss: KCAL: Remove MODULE_DESCRIPTION
+	787646a - msm: mdss: KCAL: Update according to linux guidelines and checkpatch.p
+	4ea5c43 - msm: mdss: KCAL: Check panel power state before applying values
+	e1cff1e - msm: mdss: KCAL: Allow kcal_enable to control all post-processing feat
+	830e7d5 - msm: mdss: Add KCAL support for post processing control [v2]
+	ecf0c7b - sched: Fix the broken sched_rr_get_interval()
+	84a69df - wake_up_process() should be never used to wakeup a TASK_STOPPED/TRACED
+	e5664d1 - sched: Fix migration thread runtime bogosity
+	0b45da1 - sched/nohz: Rewrite and fix load-avg computation -- again
+	687a0f1 - cpufreq: ondemand: Cover the entire condition with unlikely
+	274bd16 - cpufreq: ondemand: remove copy_prev_load from 'struct cpu_dbs_common_i
+	17b3fe6 - cpufreq: ondemand: Be friendly towards latency-sensitive bursty worklo
+	3bd3151 - cpufreq: Introduce new relation for freq selection
+	5da9722 - lib/memcopy: use glibc version
+	1a684ba - lib/string: use glibc version
+	cc1e8da - lib/int_sqrt.c: optimize square root algorithm
+	f9a7eb3 - devfreq: remove cpubw and userspace governor
+	2e6b643 - sched/idle: Avoid spurious wakeup IPIs
+	1f0c069 - binfmt_elf.c: use get_random_int() to fix entropy depleting
+
