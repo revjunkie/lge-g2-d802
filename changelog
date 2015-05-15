@@ -1,4 +1,4 @@
-RevKernel b2
+Lucid Kernel b2
 
 Changelog 05.14.15
 	2851162 - rev: use per-cpu freq on load calculation

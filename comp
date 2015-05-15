@@ -31,6 +31,6 @@ echo -e "${gr}boot.img patched${nc}"
 
 cd ~/Downloads/g2
 
-zip -r D802-revk-b$release.zip META-INF system rev boot.img -x \*~ 
+zip -r D802-lucid-b$release.zip META-INF system rev boot.img -x \*~ 
 echo -e "${gr}Kernel Release $release is ready to flash${nc}"
 
