@@ -2,10 +2,14 @@
 
 release=$release
 gr='\033[1;4;32m'
-nc='\033[0;0m'
+nc='\033[0m'
+rd='\033[1;4;31m'
+g2tools=~/Downloads/g2-tools
 
-rm ~/Downloads/g2-tools/dt.img
-rm ~/Downloads/g2/system/lib/modules/*
+rm $g2tools/dt.img
+rm ~/g2/ramdisk/lib/modules/*
+rm $g2tools/ramdisk-new.cpio.lz4
+rm arch/arm/boot/zImage
 echo -e "${gr}Cleanup Files${nc}"
 
 read -p "ENTER RELEASE VERSION : " release
@@ -13,16 +17,28 @@ read -p "ENTER RELEASE VERSION : " release
 export KBUILD_BUILD_VERSION="$release"
 make -j$(grep -c ^processor /proc/cpuinfo)
 
-find -name '*.ko' -exec cp -av {} /home/revjunkie/Downloads/g2/system/lib/modules \;
+if [ -f arch/arm/boot/zImage ]; then
+find -name '*.ko' -exec cp -av {} ~/g2/ramdisk/lib/modules \;
+else 
+	echo -e "${rd}ERROR: COMPILE ERROR${nc}"
+	exit 0
+fi
 
-cd ~/Downloads/g2-tools
- 
-./mkbootfs ~/g2/ramdisk | gzip > ramdisk.gz
- 
-./dtbTool -o ~/Downloads/g2-tools/dt.img -s 2048 -p ~/g2/scripts/dtc/ ~/g2/arch/arm/boot/
+cd ramdisk
 
-./mkbootimg --kernel ~/g2/arch/arm/boot/zImage --ramdisk ramdisk.gz --cmdline "console=ttyHSL0,115200,n8 user_debug=31 ehci-hcd.park=3 msm_rtb.filter=0x0 mdss_mdp.panel=1:dsi:0:qcom,mdss_dsi_g2_lgd_cmd androidboot.hardware=g2" --base 0x00000000 --pagesize 2048 --offset 0x05000000 --tags-addr 0x00000100 --dt dt.img -o ~/Downloads/g2/boot.img
+find . | cpio -H newc -o | $g2tools/lz4 -l stdin stdout > $g2tools/ramdisk-new.cpio.lz4
+ 
+cd $g2tools
+ 
+./dtbTool -o $g2tools/dt.img -s 2048 -p ~/g2/scripts/dtc/ ~/g2/arch/arm/boot/
+
+if [ -f $g2tools/ramdisk-new.cpio.lz4 ]; then
+./mkbootimg --kernel ~/g2/arch/arm/boot/zImage --ramdisk ramdisk-new.cpio.lz4 --cmdline "console=ttyHSL0,115200,n8 user_debug=31 ehci-hcd.park=3 msm_rtb.filter=0x0 mdss_mdp.panel=1:dsi:0:qcom,mdss_dsi_g2_lgd_cmd androidboot.hardware=g2" --base 0x00000000 --pagesize 2048 --offset 0x05000000 --tags-addr 0x00000100 --dt dt.img -o ~/Downloads/g2/boot.img
 echo -e "${gr}boot.img compiled${nc}"
+else
+	echo -e "${rd}ERROR: RAMDISK ERROR${nc}"
+	exit 0
+fi
 
 python2 open_bump.py -a ~/Downloads/g2/boot.img 
 
