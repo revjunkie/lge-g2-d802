@@ -17,6 +17,7 @@
 
 #include <mach/lge_charging_scenario_v1_7.h>
 #include <linux/string.h>
+#include <linux/module.h>
 
 /* For LGE charging scenario debug */
 #ifdef DEBUG_LCS
@@ -240,6 +241,9 @@ determine_lge_charging_state(enum lge_battemp_states battemp_st, int batt_volt)
 	return next_state;
 }
 
+static bool thermal_charge_high = true;
+module_param(thermal_charge_high, bool, 0644);
+
 void lge_monitor_batt_temp(struct charging_info req, struct charging_rsp *res)
 {
 	enum lge_battemp_states battemp_state;
@@ -311,7 +315,7 @@ void lge_monitor_batt_temp(struct charging_info req, struct charging_rsp *res)
 #else
 	    if (req.chg_current_te <= req.chg_current_ma) {
 #endif
-		if (req.batt_temp <= 40) 
+		if (thermal_charge_high && req.batt_temp <= 40) 
 			res->dc_current = req.chg_current_ma;
 		else
 			res->dc_current = req.chg_current_te;
@@ -368,6 +372,13 @@ void lge_monitor_batt_temp(struct charging_info req, struct charging_rsp *res)
 #endif
 
 #ifdef CONFIG_LGE_THERMALE_CHG_CONTROL
+	if (thermal_charge_high && req.batt_temp <= 40) 
+	pr_err("LGE charging scenario : state %d -> %d(%d-%d),"\
+		" temp=%d, volt=%d, BTM=%d, charger=%d, cur_set=%d/%d, chg_cur = %d\n",
+		pre_state, charging_state, res->change_lvl, res->force_update ? 1 : 0,
+		req.batt_temp, req.batt_volt / 1000, res->btm_state, req.is_charger,
+		req.chg_current_ma, res->dc_current, req.current_now);
+	else
 	pr_err("LGE charging scenario : state %d -> %d(%d-%d),"\
 		" temp=%d, volt=%d, BTM=%d, charger=%d, cur_set=%d/%d, chg_cur = %d\n",
 		pre_state, charging_state, res->change_lvl, res->force_update ? 1 : 0,
@@ -381,5 +392,4 @@ void lge_monitor_batt_temp(struct charging_info req, struct charging_rsp *res)
 		req.current_now);
 #endif
 }
-
 
