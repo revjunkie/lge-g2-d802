@@ -30,12 +30,15 @@ modules.builtin
 *.lzma
 *.xz
 *.lzo
+*.lz4
 *.patch
 *.gcno
 *.dtb
+*.pdf
 zImage
 zImage-dtb
 Image
+vmlinux
 
 #
 # Top-level generic files
@@ -48,8 +51,6 @@ Image
 /System.map
 /Module.markers
 /Module.symvers
-/scripts
-/arch/arm/boot/compressed
 
 #
 # Debian directory (make deb-pkg)
@@ -69,7 +70,6 @@ include/config
 include/linux/version.h
 include/generated
 arch/*/include/generated
-comp
 arch/arm/mach-msm/smd_rpc_sym.c
 arch/arm/kernel/vmlinux.lds
 drivers/tty/vt/consolemap_deftbl.c
@@ -83,7 +83,7 @@ usr/gen_init_cpio
 usr/initramfs_data.cpio
 lucid
 lucid_post_boot
-
+comp
 
 # stgit generated dirs
 patches-*
