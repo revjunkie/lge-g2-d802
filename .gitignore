@@ -81,9 +81,20 @@ security/selinux/av_permissions.h
 security/selinux/flask.h
 usr/gen_init_cpio
 usr/initramfs_data.cpio
+scripts/kconfig/conf
+scripts/kconfig/mconf
+scripts/recordmcount
 lucid
 lucid_post_boot
 comp
+fixdep
+conmakehash
+scripts/genksyms/genksyms
+kallsyms
+mk_elfconfig
+modpost
+scripts/selinux/genjeaders/genheaders
+scripts/selinux/mdp/mdp
 
 # stgit generated dirs
 patches-*
