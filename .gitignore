@@ -30,16 +30,8 @@ modules.builtin
 *.lzma
 *.xz
 *.lzo
-*.lz4
 *.patch
 *.gcno
-*.dtb
-*.pdf
-zImage
-zImage-dtb
-Image
-vmlinux
-
 #
 # Top-level generic files
 #
@@ -51,18 +43,15 @@ vmlinux
 /System.map
 /Module.markers
 /Module.symvers
-
 #
 # Debian directory (make deb-pkg)
 #
 /debian/
-
 #
 # git files that we don't want to ignore even it they are dot-files
 #
 !.gitignore
 !.mailmap
-
 #
 # Generated include files
 #
@@ -70,49 +59,79 @@ include/config
 include/linux/version.h
 include/generated
 arch/*/include/generated
-arch/arm/mach-msm/smd_rpc_sym.c
-arch/arm/kernel/vmlinux.lds
-drivers/tty/vt/consolemap_deftbl.c
-drivers/tty/vt/defkeymap.c
-kernel/timeconst.h
-lib/crc32table.h
-lib/gen_crc32table
-security/selinux/av_permissions.h
-security/selinux/flask.h
-usr/gen_init_cpio
-usr/initramfs_data.cpio
-scripts/kconfig/conf
-scripts/kconfig/mconf
-scripts/recordmcount
-lucid
-lucid_post_boot
-comp
-fixdep
+#
+# Scripts files
+#
 conmakehash
-scripts/genksyms/genksyms
 kallsyms
+pnmtologo
+bin2c
+unifdef
+ihex2fw
+recordmcount
+docproc
+*.hash.c
+*.lex.c
+*.tab.c
+*.tab.h
+scripts/genksyms/genksyms
+scripts/basic/fixdep
+elfconfig.h
 mk_elfconfig
 modpost
-scripts/selinux/genjeaders/genheaders
-scripts/selinux/mdp/mdp
-
+scripts/selinux/genheaders/genheaders
+scripts/dtc/dtc
+scripts/dtc/dtc-lexer.lex.c
+scripts/dtc/dtc-parser.tab.c
+scripts/dtc/dtc-parser.tab.h
+#
+# Arm files
+#
+Image
+zImage
+xipImage
+bootpImage
+uImage
+*.dtb
+zImage-dtb
+*.lz4
+ashldi3.S
+font.c
+smd_rpc_sym.c
+lib1funcs.S
+piggy.gzip
+piggy.lzo
+piggy.lzma
+piggy.xzkern
+vmlinux
+vmlinux.lds
+# borrowed libfdt files
+fdt.c
+fdt.h
+fdt_ro.c
+fdt_rw.c
+fdt_wip.c
+libfdt.h
+libfdt_internal.h
 # stgit generated dirs
 patches-*
-
+# 
+# Lucid
+#
+comp
+lucid
+lucid_post_boot
 # quilt's files
 patches
 series
-
 # cscope files
 cscope.*
 ncscope.*
-
 # gnu global files
 GPATH
 GRTAGS
 GSYMS
 GTAGS
-
 *.orig
 *~
 \#*#
