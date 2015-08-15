@@ -169,6 +169,7 @@ lib/crc32table.h
 comp
 lucid
 lucid_post_boot
+ini
 # quilt's files
 patches
 series
